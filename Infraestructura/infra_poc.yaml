@@ -1,0 +1,93 @@
+$schema: https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#
+contentVersion: "1.0.0.0"
+
+parameters:
+  environment:
+    type: string
+    defaultValue: "pilot"
+  location:
+    type: string
+    defaultValue: "eastus"
+
+resources:
+  # 1. Azure Blob Storage (Guarda los PDFs de facturas)
+  - type: Microsoft.Storage/storageAccounts
+    apiVersion: "2023-01-01"
+    name: "stfacturasmedicas01"
+    location: "[parameters('location')]"
+    sku:
+      name: Standard_LRS
+    kind: StorageV2
+    properties:
+      accessTier: Hot
+
+  # 2. Azure AI Document Intelligence (OCR de facturas)
+  - type: Microsoft.CognitiveServices/accounts
+    apiVersion: "2023-05-01"
+    name: "cog-doc-intelligence-01"
+    location: "[parameters('location')]"
+    sku:
+      name: S0
+    kind: FormRecognizer
+    properties:
+      customSubDomainName: "cog-doc-intelligence-01"
+
+  # 3. Azure SQL Server y Database (Trazabilidad y analítica)
+  - type: Microsoft.Sql/servers
+    apiVersion: "2022-05-01-preview"
+    name: "sql-facturas-server-01"
+    location: "[parameters('location')]"
+    properties:
+      administratorLogin: "sqladminuser"
+      administratorLoginPassword: "ComplexPassword123!"
+
+  - type: Microsoft.Sql/servers/databases
+    apiVersion: "2022-05-01-preview"
+    name: "sql-facturas-server-01/sqldb-facturas"
+    location: "[parameters('location')]"
+    dependsOn:
+      - "Microsoft.Sql/servers/sql-facturas-server-01"
+    sku:
+      name: S0
+      tier: Standard
+
+  # 4. Plan de App Service / Consumption para Functions y Logic Apps
+  - type: Microsoft.Web/serverfarms
+    apiVersion: "2022-09-01"
+    name: "asp-facturas-pilot"
+    location: "[parameters('location')]"
+    sku:
+      name: Y1
+      tier: Dynamic
+
+  # 5. Azure Function App (Ruteo 80/20 y Validaciones de negocio)
+  - type: Microsoft.Web/sites
+    apiVersion: "2022-09-01"
+    name: "func-facturas-logic-01"
+    location: "[parameters('location')]"
+    kind: functionapp
+    properties:
+      serverFarmId: "[resourceId('Microsoft.Web/serverfarms', 'asp-facturas-pilot')]"
+
+  # 6. Azure Logic Apps (Workflow de ingesta)
+  - type: Microsoft.Logic/workflows
+    apiVersion: "2019-05-01"
+    name: "logic-ingest-facturas"
+    location: "[parameters('location')]"
+    properties:
+      state: Enabled
+      definition:
+        $schema: https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#
+        contentVersion: 1.0.0.0
+        triggers: {}
+        actions: {}
+
+  # 7. Azure Machine Learning Workspace (Scoring de riesgo)
+  - type: Microsoft.MachineLearningServices/workspaces
+    apiVersion: "2023-04-01"
+    name: "ml-facturas-workspace"
+    location: "[parameters('location')]"
+    identity:
+      type: SystemAssigned
+    properties:
+      friendlyName: "Workspace ML Facturas Médicas"
