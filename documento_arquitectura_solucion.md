@@ -10,41 +10,7 @@ El objetivo principal es implementar un modelo experimental (A/B Testing o Grupo
 
 ## 2. Diagrama de Arquitectura de Solución
 
-```
-+-----------------------------------------------------------------------------------+
-|                                Azure Blob Storage                                 |
-|                                                                                   |
-|   +---------------+            +------------------+            +--------------+   |
-|   |  Folder: IPS  | ---(1)---> | PDF Documento    | ---(1)---> | Folder: Crudo|   |
-|   +---------------+            +------------------+            +--------------+   |
-+------------------------------------------|----------------------------------------+
-                                           |
-                                           | (Monitorea e Inicia)
-                                           v
-                             +----------------------------+
-                             |     Azure Logic Apps       |
-                             |        (Trigger)           |
-                             +----------------------------+
-                                           |
-                                           | (2) Invoca procesamiento
-                                           v
-                             +----------------------------+
-                             |       Azure Function       |
-                             |  Validación de duplicados  |
-                             |     y ruteo (80 / 20)      |
-                             +----------------------------+
-                                           |
-                                           | (3) Clasifica y mueve a carpeta destino
-                                           v
-+-----------------------------------------------------------------------------------+
-|                                Azure Blob Storage                                 |
-|                                                                                   |
-|    +-------------------+    +--------------------+    +----------------------+    |
-|    | Folder:           |    | Folder:            |    | Folder:              |    |
-|    | Flujo_actual (80%)|    | Flujo_nuevo (20%)  |    | Duplicados           |    |
-|    +-------------------+    +--------------------+    +----------------------+    |
-+-----------------------------------------------------------------------------------+
-```
+<img width="521" height="472" alt="image" src="https://github.com/user-attachments/assets/5645216c-382e-4ca0-8389-188f5b74418d" />
 
 ---
 
